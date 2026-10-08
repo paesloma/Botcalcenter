@@ -3,12 +3,11 @@ const qrcode = require('qrcode');
 const axios = require('axios');
 const express = require('express');
 
-// Configuración del servidor web para evitar el Timeout en Render
+// 1. SERVIDOR WEB Y GENERADOR DE QR VISUAL (Para evitar el Timeout en Render)
 const app = express();
 const port = process.env.PORT || 3000;
 let qrCodeData = 'Generando QR... por favor recarga la página en unos segundos.';
 
-// Ruta principal para mostrar el código QR como imagen
 app.get('/', async (req, res) => {
     if (qrCodeData.startsWith('✅') || qrCodeData.startsWith('Generando')) {
         res.send(`<h1 style="font-family: Arial; padding: 20px; text-align: center;">${qrCodeData}</h1>`);
@@ -28,16 +27,17 @@ app.get('/', async (req, res) => {
     }
 });
 
-// Inicializamos el servidor web
 app.listen(port, () => console.log(`Servidor Express escuchando en el puerto ${port}`));
 
 // URL de tu Google Apps Script
 const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzOLNB4nSlqjxZ01ENwmzOQuXsOCv_BytRovwM6aIY427py3RQIdh_90aX6tSfI8ftcKg/exec";
 
-// Configuración de WhatsApp con parámetros para ahorrar memoria RAM
+// 2. CONFIGURACIÓN DEL BOT CON CAMUFLAJE PARA EVITAR BLOQUEOS
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
+        // Camuflamos el servidor para que WhatsApp crea que es un Chrome en Windows
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -48,6 +48,11 @@ const client = new Client({
             '--disable-gpu',
             '--single-process'
         ]
+    },
+    // Forzamos una versión estable de WhatsApp Web
+    webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
     }
 });
 
@@ -67,6 +72,7 @@ client.on('ready', () => {
 client.on('message', async (message) => {
     const texto = message.body.trim();
 
+    // Filtro para el comando asignado
     if (texto.toLowerCase().startsWith('extraer 1')) {
         console.log('Comando "extraer 1" detectado. Procesando información...');
         const lineas = texto.split('\n');
