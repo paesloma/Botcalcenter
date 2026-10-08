@@ -1,0 +1,14 @@
+{
+  "name": "bot-whatsapp-sheets",
+  "version": "1.0.0",
+  "description": "Bot para extraer datos y enviar a Google Sheets",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.23.0",
+    "qrcode-terminal": "^0.12.0",
+    "axios": "^1.6.0"
+  }
+}
