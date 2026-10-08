@@ -1,15 +1,30 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
+const express = require('express');
 
-// URL de tu Google Apps Script ya configurada
+// 1. MINI SERVIDOR WEB (Evita el error "No open ports detected")
+const app = express();
+const port = process.env.PORT || 3000;
+app.get('/', (req, res) => res.send('El bot de WhatsApp está en línea y funcionando.'));
+app.listen(port, () => console.log(`Puerto ${port} abierto exitosamente para satisfacer a Render.`));
+
+// URL de tu Google Apps Script
 const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzOLNB4nSlqjxZ01ENwmzOQuXsOCv_BytRovwM6aIY427py3RQIdh_90aX6tSfI8ftcKg/exec";
 
-// Configuración del cliente de WhatsApp
+// 2. CONFIGURACIÓN OPTIMIZADA (Evita el error "Out of memory 512Mi")
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+        ]
     }
 });
 
@@ -28,14 +43,11 @@ client.on('ready', () => {
 client.on('message', async (message) => {
     const texto = message.body.trim();
 
-    // Filtro estricto: Solo se activa si el mensaje empieza exactamente con "extraer 1"
     if (texto.toLowerCase().startsWith('extraer 1')) {
         console.log('Comando "extraer 1" detectado. Procesando información...');
         
-        // Separamos el texto usando los saltos de línea
         const lineas = texto.split('\n');
 
-        // Verificamos que contenga el comando más los 6 datos (7 líneas en total)
         if (lineas.length >= 7) {
             const payload = {
                 tipo_atencion: lineas[1].trim(),
@@ -47,14 +59,13 @@ client.on('message', async (message) => {
             };
 
             try {
-                // Enviar los datos estructurados a tu Google Sheets
                 const response = await axios.post(GOOGLE_SHEETS_URL, payload);
                 console.log('Registro exitoso en Sheets:', response.data);
             } catch (error) {
                 console.error('Error al conectar con Google Sheets:', error);
             }
         } else {
-            console.log('El mensaje fue ignorado porque no tiene la estructura completa de datos.');
+            console.log('El mensaje fue ignorado porque no tiene la estructura completa.');
         }
     }
 });
