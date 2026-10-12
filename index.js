@@ -8,18 +8,18 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'paesloma@gmail.com', // Tu correo de origen
-        pass: 'voccbgupurcbtdhx'    // Contraseña de aplicación generada
+        user: 'paesloma@gmail.com', 
+        pass: 'voccbgupurcbtdhx'    
     }
 });
 
-// 2. SERVIDOR WEB PARA EL QR (Evita Timeout en Render)
+// 2. SERVIDOR WEB PARA EL QR
 const app = express();
 const port = process.env.PORT || 3000;
 let qrCodeData = 'Generando QR... por favor recarga la página en unos segundos.';
 
 app.get('/', async (req, res) => {
-    if (qrCodeData.startsWith('✅') || qrCodeData.startsWith('Generando')) {
+    if (qrCodeData.startsWith('✅') || qrCodeData.startsWith('Generando') || qrCodeData.startsWith('❌')) {
         res.send(`<h1 style="font-family: Arial; padding: 20px; text-align: center;">${qrCodeData}</h1>`);
     } else {
         try {
@@ -39,10 +39,10 @@ app.get('/', async (req, res) => {
 
 app.listen(port, () => console.log(`Servidor Express escuchando en el puerto ${port}`));
 
-// URL de tu NUEVA base de datos de Google Apps Script (Actualizada con tu enlace exacto)
+// URL de tu base de datos
 const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyyqf_jvFCr9TwCnjwwI_-vt8RhzLSamkAVSAtG_3yWxtoSRJjuKW63HkeEaABvYkX1JQ/exec";
 
-// 3. CONFIGURACIÓN DE WHATSAPP CON CAMUFLAJE
+// 3. CONFIGURACIÓN DE WHATSAPP ULTRA LIGERA
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
@@ -55,15 +55,13 @@ const client = new Client({
             '--no-first-run', 
             '--no-zygote', 
             '--disable-gpu', 
-            '--single-process'
+            '--single-process',
+            '--disable-extensions'
         ]
-    },
-    webVersionCache: {
-        type: 'remote',
-        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
     }
 });
 
+// MONITORES DE EVENTOS
 client.on('qr', (qr) => { 
     console.log('Nuevo QR generado. Abre tu enlace de Render (.onrender.com) para escanearlo.');
     qrCodeData = qr; 
@@ -72,6 +70,16 @@ client.on('qr', (qr) => {
 client.on('ready', () => { 
     console.log('¡Bot conectado exitosamente!');
     qrCodeData = '✅ El Bot de WhatsApp está conectado y registrando datos en segundo plano.'; 
+});
+
+client.on('authenticated', () => {
+    console.log('Autenticación correcta. Sincronizando chats (esto puede tardar unos minutos)...');
+    qrCodeData = '⏳ Autenticación exitosa. Sincronizando WhatsApp, por favor espera...';
+});
+
+client.on('auth_failure', msg => {
+    console.error('Fallo en la autenticación:', msg);
+    qrCodeData = '❌ Fallo en la autenticación. Reinicia el servidor en Render.';
 });
 
 // 4. MEMORIA PARA EL AGENTE CONVERSACIONAL
@@ -88,7 +96,7 @@ async function registrarOrden(datos, numeroDestino) {
     try {
         const mailOptions = {
             from: 'paesloma@gmail.com',
-            to: 'paesloma@gmail.com', // El correo que recibirá la alerta
+            to: 'paesloma@gmail.com',
             subject: `Nueva Orden Registrada - ${datos.marca}`,
             text: `Se ha registrado un nuevo ticket:\n\nAtención: ${datos.tipo_atencion}\nMarca: ${datos.marca}\nGarantía: ${datos.garantia_activa}\nProducto: ${datos.tipo_producto}\nCliente: ${datos.nombre_apellido}\nTeléfono: ${datos.telefono}`
         };
@@ -108,9 +116,6 @@ client.on('message', async (message) => {
 
     if (message.isGroupMsg || numero === 'status@broadcast') return;
 
-    // ==========================================
-    // MODO RÁPIDO: Comando directo
-    // ==========================================
     if (texto.toLowerCase().startsWith('extraer 1')) {
         console.log('Comando "extraer 1" detectado. Procesando información...');
         const lineas = texto.split('\n');
@@ -129,9 +134,6 @@ client.on('message', async (message) => {
         return;
     }
 
-    // ==========================================
-    // MODO AGENTE CONVERSACIONAL (MENÚ NUMÉRICO)
-    // ==========================================
     if (!sesiones.has(numero)) {
         const saludos = ['hola', 'buenas', 'buen dia', 'buenas tardes', 'ayuda'];
         
