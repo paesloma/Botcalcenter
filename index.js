@@ -8,12 +8,12 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'paesloma@gmail.com', 
-        pass: 'voccbgupurcbtdhx'    
+        user: 'paesloma@gmail.com', // Tu correo de origen
+        pass: 'voccbgupurcbtdhx'    // Contraseña de aplicación generada
     }
 });
 
-// 2. SERVIDOR WEB PARA EL QR
+// 2. SERVIDOR WEB PARA EL QR (Evita Timeout en Render)
 const app = express();
 const port = process.env.PORT || 3000;
 let qrCodeData = 'Generando QR... por favor recarga la página en unos segundos.';
@@ -39,7 +39,7 @@ app.get('/', async (req, res) => {
 
 app.listen(port, () => console.log(`Servidor Express escuchando en el puerto ${port}`));
 
-// URL de tu base de datos
+// URL de tu base de datos de Google Apps Script
 const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyyqf_jvFCr9TwCnjwwI_-vt8RhzLSamkAVSAtG_3yWxtoSRJjuKW63HkeEaABvYkX1JQ/exec";
 
 // 3. CONFIGURACIÓN DE WHATSAPP ULTRA LIGERA
@@ -74,7 +74,7 @@ client.on('ready', () => {
 
 client.on('authenticated', () => {
     console.log('Autenticación correcta. Sincronizando chats (esto puede tardar unos minutos)...');
-    qrCodeData = '⏳ Autenticación exitosa. Sincronizando WhatsApp, por favor espera...';
+    qrCodeData = '⏳ Autenticación exitosa. Sincronizando WhatsApp, por espera...';
 });
 
 client.on('auth_failure', msg => {
@@ -96,7 +96,7 @@ async function registrarOrden(datos, numeroDestino) {
     try {
         const mailOptions = {
             from: 'paesloma@gmail.com',
-            to: 'paesloma@gmail.com',
+            to: 'paesloma@gmail.com', // El correo que recibirá la alerta
             subject: `Nueva Orden Registrada - ${datos.marca}`,
             text: `Se ha registrado un nuevo ticket:\n\nAtención: ${datos.tipo_atencion}\nMarca: ${datos.marca}\nGarantía: ${datos.garantia_activa}\nProducto: ${datos.tipo_producto}\nCliente: ${datos.nombre_apellido}\nTeléfono: ${datos.telefono}`
         };
@@ -109,13 +109,21 @@ async function registrarOrden(datos, numeroDestino) {
     await client.sendMessage(numeroDestino, '✅ ¡Listo! Tu orden ha sido registrada y notificada exitosamente. Nos comunicaremos contigo pronto.');
 }
 
-// 5. PROCESAMIENTO DE MENSAJES
-client.on('message', async (message) => {
+// 5. PROCESAMIENTO DE MENSAJES (MODO PROFUNDO CON RADAR)
+client.on('message_create', async (message) => {
+    if (message.fromMe) return;
+
     const texto = message.body.trim();
     const numero = message.from;
 
+    // RADAR: Esto imprimirá cada mensaje entrante en la consola de Render
+    console.log(`📩 Mensaje detectado de [${numero}]: ${texto}`);
+
     if (message.isGroupMsg || numero === 'status@broadcast') return;
 
+    // ==========================================
+    // MODO RÁPIDO: Comando directo
+    // ==========================================
     if (texto.toLowerCase().startsWith('extraer 1')) {
         console.log('Comando "extraer 1" detectado. Procesando información...');
         const lineas = texto.split('\n');
@@ -134,6 +142,9 @@ client.on('message', async (message) => {
         return;
     }
 
+    // ==========================================
+    // MODO AGENTE CONVERSACIONAL (MENÚ NUMÉRICO)
+    // ==========================================
     if (!sesiones.has(numero)) {
         const saludos = ['hola', 'buenas', 'buen dia', 'buenas tardes', 'ayuda'];
         
